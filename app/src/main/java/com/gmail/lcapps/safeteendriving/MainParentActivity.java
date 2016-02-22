@@ -2,9 +2,11 @@ package com.gmail.lcapps.safeteendriving;
 
 import android.app.AlertDialog;
 import android.app.ListActivity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -38,6 +40,36 @@ public class MainParentActivity extends ListActivity
     ArrayList<String> m_contactLabels = new ArrayList<String>();
     ServiceArrayAdapter m_serviceAdapter;
 
+    private BroadcastReceiver m_receiver = new BroadcastReceiver()
+    {
+        @Override
+        public void onReceive(Context context, Intent intent)
+        {
+            if (intent.getAction().equals("showRequestAcceptedToast"))
+            {
+                Toast toast = Toast.makeText(getApplicationContext(), intent.getStringExtra("message"), Toast.LENGTH_LONG);
+                toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0);
+                toast.show();
+            }
+        }
+    };
+
+    //register your activity onResume()
+    @Override
+    public void onResume()
+    {
+        super.onResume();
+        this.registerReceiver(m_receiver, new IntentFilter("showRequestAcceptedToast"));
+    }
+
+    //Must unregister onPause()
+    @Override
+    protected void onPause()
+    {
+        super.onPause();
+        this.unregisterReceiver(m_receiver);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -63,6 +95,7 @@ public class MainParentActivity extends ListActivity
                 String name = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME));
                 TeenDriver driver = new TeenDriver();
                 driver.setName(name);
+                driver.setButton(new Button(getApplicationContext()));
 
                 this.m_contactLabels.add(name);
                 this.m_driverList.add(driver);
@@ -116,7 +149,19 @@ public class MainParentActivity extends ListActivity
             else
             {
                 rowView = m_inflater.inflate(R.layout.contact_main_service_list_item, parent, false);
-                m_contactColorButton = (Button) rowView.findViewById(R.id.buttonMainService);
+                Button btn = m_driverList.get(position-1).getButton();
+                btn = (Button) rowView.findViewById(R.id.buttonMainService);
+                btn.getBackground().setColorFilter(Color.GRAY, PorterDuff.Mode.MULTIPLY);
+                btn.setOnClickListener(new View.OnClickListener()
+                {
+                    //@Override
+                    public void onClick(View v)
+                    {
+                        changeButton(m_driverList.get(position-1));
+                    }
+
+                });
+                /*m_contactColorButton = (Button) rowView.findViewById(R.id.buttonMainService);
                 m_contactColorButton.getBackground().setColorFilter(Color.GRAY, PorterDuff.Mode.MULTIPLY);
                 m_contactColorButton.setOnClickListener(new View.OnClickListener()
                 {
@@ -126,7 +171,7 @@ public class MainParentActivity extends ListActivity
                         changeButton(m_driverList.get(position-1));
                     }
 
-                });
+                });*/
             }
 
             TextView textView = (TextView) rowView.findViewById(R.id.label);
@@ -211,9 +256,8 @@ public class MainParentActivity extends ListActivity
                 public void onClick(DialogInterface dialog, int id)
                 {
                     SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                    String guid = preferences.getString("parentGuid", "null");
-
                     String url = "https://66ctfnx3b2.execute-api.us-west-2.amazonaws.com/prod/requestTeenPhone";
+                    String guid = preferences.getString("parentGuid", "null");
                     String teenId = regIdText.getText().toString();
 
                     String message = null;
@@ -257,12 +301,11 @@ public class MainParentActivity extends ListActivity
             alert.show();
 
             return true;
-
         }
 
-        private void GeneralToastMsg(String toastMsg)
+        public void GeneralToastMsg(String toastMsg)
         {
-            Toast toast = Toast.makeText(m_context, toastMsg, Toast.LENGTH_SHORT);
+            Toast toast = Toast.makeText(m_context, toastMsg, Toast.LENGTH_LONG);
             toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0);
             toast.show();
         }

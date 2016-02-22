@@ -2,7 +2,9 @@ package com.gmail.lcapps.safeteendriving;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -16,12 +18,22 @@ public class MainActivity extends Activity {
     private Button teenButton;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         this.parentButton = (Button) findViewById(R.id.buttonParent);
         this.teenButton = (Button) findViewById(R.id.buttonTeen);
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        String guid = preferences.getString("parentGuid", "null");
+
+        if (!guid.equals("null"))
+        {
+            Intent intent = new Intent(this, MainParentActivity.class);
+            startActivity(intent);
+        }
 
         parentButton.setOnClickListener(new View.OnClickListener() {
             @Override
