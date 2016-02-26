@@ -76,24 +76,25 @@ public class TeenGcmListenerService extends GcmListenerService
 
         if (type.equals("teenRequest"))
         {
-            askForRegistration(obj);
+            askForRegistrationFromTeen(obj);
         }
         else if (type.equals("teenRequestSuccessful"))
         {
-            sendRegistrationSuccessful(obj);
+            sendRegistrationSuccessfulToParent(obj);
         }
     }
 
-    private void sendRegistrationSuccessful(JSONObject jsonObj)
+    private void sendRegistrationSuccessfulToParent(JSONObject jsonObj)
     {
         String msg = "Registration Successful!";
-        Intent intent = new Intent("showRequestAcceptedToast");
+        Intent intent = new Intent("teenRegistrationSuccessful");
         intent.putExtra("message", msg);
+        intent.putExtra("teenId", jsonObj.optString("teenId"));
 
         getApplicationContext().sendBroadcast(intent);
     }
 
-    private void askForRegistration(JSONObject jsonObj)
+    private void askForRegistrationFromTeen(JSONObject jsonObj)
     {
         String firstName = jsonObj.optString("firstName");
         String lastName = jsonObj.optString("lastName");

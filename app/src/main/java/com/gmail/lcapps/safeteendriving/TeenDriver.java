@@ -1,16 +1,27 @@
 package com.gmail.lcapps.safeteendriving;
 
-import android.widget.Button;
-
 public class TeenDriver
 {
     private String m_name;
+    private String m_id;
+    private String m_guessId;
     private String m_token;
-    private Button m_button;
+    private ServiceStatus m_serviceStatus;
+    private TeenDriverSettings m_settings;
 
     public void setName(String name)
     {
         m_name = name;
+    }
+
+    public void setId(String id)
+    {
+        m_id = id;
+    }
+
+    public void setGuessId(String id)
+    {
+        m_guessId = id;
     }
 
     public void setToken(String token)
@@ -18,9 +29,9 @@ public class TeenDriver
         m_token = token;
     }
 
-    public void setButton(Button button)
+    public void setServiceStatus(ServiceStatus status)
     {
-        m_button = button;
+        m_serviceStatus = status;
     }
 
     public String getName()
@@ -28,13 +39,17 @@ public class TeenDriver
         return m_name;
     }
 
+    public String getId() { return m_id; }
+
+    public String getGuessId() { return m_guessId; }
+
     public String getToken()
     {
         return m_token;
     }
 
-    public Button getButton()
+    public ServiceStatus getServerStatus()
     {
-        return m_button;
+        return m_serviceStatus;
     }
 }

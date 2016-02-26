@@ -24,6 +24,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -31,38 +32,53 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 
 public class MainParentActivity extends ListActivity
 {
-
     private static final int GET_CONTACTS_RESULT_CODE = 0;
     private ArrayList<TeenDriver> m_driverList = new ArrayList<TeenDriver>();
-    ArrayList<String> m_contactLabels = new ArrayList<String>();
-    ServiceArrayAdapter m_serviceAdapter;
+    DriverArrayAdapter m_driverAdapter;
 
     private BroadcastReceiver m_receiver = new BroadcastReceiver()
     {
         @Override
         public void onReceive(Context context, Intent intent)
         {
-            if (intent.getAction().equals("showRequestAcceptedToast"))
+            if (intent.getAction().equals("teenRegistrationSuccessful"))
             {
-                Toast toast = Toast.makeText(getApplicationContext(), intent.getStringExtra("message"), Toast.LENGTH_LONG);
-                toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0);
-                toast.show();
+                /* Possible ways to implement this:
+                 *  (Both don't solve the problem of if the list changes (add/delete)
+                 *   between request and response (ie index will be invalid/guessId might trigger false/positives)
+                 *
+                 *      Current way      - add 'guess id' to TeenDriver class
+                 *                         guess id is set for the teen driver before request is made
+                 *                         on response, the teen id is sent down
+                 *                         loop through driver list and compare id to guess id
+                 *                         when driver is found, set the real (not guess) id
+                 *
+                 *      Alt way          - on request, send up index of array position
+                 *                         on response, the index is sent back down
+                 *                         set the real id
+                 *
+                 *     Brainstorming     - send driver name up on request and down on response
+                 *                         */
+
+                String id = intent.getStringExtra("teenId");
+                String message = intent.getStringExtra("message");
+
+                teenRegistrationSuccessful(id, message);
             }
         }
     };
 
-    //register your activity onResume()
     @Override
     public void onResume()
     {
         super.onResume();
-        this.registerReceiver(m_receiver, new IntentFilter("showRequestAcceptedToast"));
+        this.registerReceiver(m_receiver, new IntentFilter("teenRegistrationSuccessful"));
     }
 
-    //Must unregister onPause()
     @Override
     protected void onPause()
     {
@@ -75,9 +91,9 @@ public class MainParentActivity extends ListActivity
     {
         super.onCreate(savedInstanceState);
 
-        m_contactLabels.add(""); // Add Contacts Button
-        m_serviceAdapter = new ServiceArrayAdapter(this, this.m_contactLabels);
-        setListAdapter(this.m_serviceAdapter);
+        m_driverList.add(new TeenDriver()); // Add Contacts Button
+        m_driverAdapter = new DriverArrayAdapter(this, this.m_driverList);
+        setListAdapter(this.m_driverAdapter);
     }
 
     @Override
@@ -95,48 +111,59 @@ public class MainParentActivity extends ListActivity
                 String name = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME));
                 TeenDriver driver = new TeenDriver();
                 driver.setName(name);
-                driver.setButton(new Button(getApplicationContext()));
+                driver.setServiceStatus(ServiceStatus.REGISTER_DEVICE);
+                driver.setGuessId("3");
 
-                this.m_contactLabels.add(name);
                 this.m_driverList.add(driver);
-                this.m_serviceAdapter.notifyDataSetChanged();
+                this.m_driverAdapter.notifyDataSetChanged();
             }
         }
     }
 
-    public class ServiceArrayAdapter extends ArrayAdapter<String>
+    public void teenRegistrationSuccessful(String id, String message)
     {
-        private ArrayList<String> m_values;
-        private Context m_context;
-        private LayoutInflater m_inflater;
-        protected Button m_addContactButton;
-        protected Button m_contactColorButton;
-
-        public ServiceArrayAdapter(Context context, ArrayList<String> contactLabels)
+        for (Iterator<TeenDriver> i = m_driverList.iterator(); i.hasNext();)
         {
-            super(context, android.R.layout.simple_list_item_1, contactLabels);
-            this.m_context = context;
-            this.m_values = contactLabels;
-            this.m_inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            TeenDriver driver = i.next();
+
+            if (id.equals(driver.getGuessId()))
+            {
+                driver.setId(id);
+                driver.setServiceStatus(ServiceStatus.SERVICE_ON);
+                break;
+            }
         }
 
-        @Override
-        public int getViewTypeCount()
+        this.m_driverAdapter.notifyDataSetChanged();
+        GeneralToastMessage(message);
+    }
+
+    private void GeneralToastMessage(String msg)
+    {
+        Toast toast = Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG);
+        toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0);
+        toast.show();
+    }
+
+    public class DriverArrayAdapter extends ArrayAdapter<TeenDriver>
+    {
+        public DriverArrayAdapter(Context context, ArrayList<TeenDriver> drivers)
         {
-            return m_values.size();
+            super(context, 0, drivers);
         }
 
         @Override
         public View getView(final int position, View convertView, ViewGroup parent)
         {
-            View rowView = null;
-
             if(position == 0)
             {
-                rowView = m_inflater.inflate(R.layout.add_contact_list_item, parent, false);
-                m_addContactButton = (Button) rowView.findViewById(R.id.buttonAddContact);
+                if (convertView == null)
+                {
+                    convertView = LayoutInflater.from(getContext()).inflate(R.layout.add_contact_list_item, parent, false);
+                }
 
-                m_addContactButton.setOnClickListener(new View.OnClickListener()
+                Button addDriverButton = (Button) convertView.findViewById(R.id.buttonAddDriver);
+                addDriverButton.setOnClickListener(new View.OnClickListener()
                 {
                     //@Override
                     public void onClick(View v)
@@ -148,63 +175,80 @@ public class MainParentActivity extends ListActivity
             }
             else
             {
-                rowView = m_inflater.inflate(R.layout.contact_main_service_list_item, parent, false);
-                Button btn = m_driverList.get(position-1).getButton();
-                btn = (Button) rowView.findViewById(R.id.buttonMainService);
-                btn.getBackground().setColorFilter(Color.GRAY, PorterDuff.Mode.MULTIPLY);
-                btn.setOnClickListener(new View.OnClickListener()
+                TeenDriver driver = getItem(position);
+
+                if (convertView == null)
                 {
-                    //@Override
+                    convertView = LayoutInflater.from(getContext()).inflate(R.layout.teen_driver_list_item, parent, false);
+                }
+
+                TextView txtViewName = (TextView) convertView.findViewById(R.id.labelName);
+                ImageButton btnSettings = (ImageButton) convertView.findViewById(R.id.buttonSettings);
+                btnSettings.setOnClickListener(new View.OnClickListener()
+                {
+                    @Override
                     public void onClick(View v)
                     {
-                        changeButton(m_driverList.get(position-1));
+                        GeneralToastMessage("Open Settings");
+                    }
+                });
+
+                final Button btnService = (Button) convertView.findViewById(R.id.buttonMainService);
+                ServiceStatus status = driver.getServerStatus();
+
+                if (status == ServiceStatus.REGISTER_DEVICE)
+                {
+                    btnService.getBackground().setColorFilter(Color.GRAY, PorterDuff.Mode.MULTIPLY);
+                    btnService.setText(R.string.register_service_button);
+                }
+                else if (status == ServiceStatus.WAITING_FOR_RESPONSE)
+                {
+                    btnService.setText(R.string.waiting_service_button);
+                }
+                else if (status == ServiceStatus.SERVICE_ON)
+                {
+                    btnService.getBackground().setColorFilter(Color.GREEN, PorterDuff.Mode.MULTIPLY);
+                    btnService.setText(R.string.on_service_button);
+                }
+                else if (status == ServiceStatus.SERVICE_OFF)
+                {
+                    btnService.getBackground().setColorFilter(Color.RED, PorterDuff.Mode.MULTIPLY);
+                    btnService.setText(R.string.off_service_button);
+                }
+
+                btnService.setOnClickListener(new View.OnClickListener()
+                {
+                    @Override
+                    public void onClick(View v)
+                    {
+                        if (btnService.getText().equals(getResources().getText(R.string.register_service_button)))
+                        {
+                            // Register
+                            Log.d("k", "p");
+                        }
+                        else if (btnService.getText().equals(getResources().getText(R.string.waiting_service_button)))
+                        {
+                            // Waiting
+                            Log.d("k", "p");
+                        }
+                        else if (btnService.getText().equals(getResources().getText(R.string.on_service_button)))
+                        {
+                            // On
+                            Log.d("k", "p");
+                        }
+                        else if (btnService.getText().equals(getResources().getText(R.string.off_service_button)))
+                        {
+                            // Off
+                            Log.d("k", "p");
+                        }
                     }
 
                 });
-                /*m_contactColorButton = (Button) rowView.findViewById(R.id.buttonMainService);
-                m_contactColorButton.getBackground().setColorFilter(Color.GRAY, PorterDuff.Mode.MULTIPLY);
-                m_contactColorButton.setOnClickListener(new View.OnClickListener()
-                {
-                    //@Override
-                    public void onClick(View v)
-                    {
-                        changeButton(m_driverList.get(position-1));
-                    }
 
-                });*/
+                txtViewName.setText(driver.getName());
             }
 
-            TextView textView = (TextView) rowView.findViewById(R.id.label);
-            textView.setText((String)m_values.get(position));
-
-            return rowView;
-        }
-
-        private void changeButton(TeenDriver driver)
-        {
-            Button button = driver.getButton();
-            if(button.getText().equals("Register Device"))
-            {
-                if(registerTeenPhone())
-                {
-                    button.setText("OFF");
-                    button.getBackground().setColorFilter(Color.RED, PorterDuff.Mode.MULTIPLY);
-                }
-            }
-            else if(button.getText().equals("ON"))
-            {
-                sendNotification("off");
-                button.setText("OFF");
-                button.getBackground().setColorFilter(Color.RED, PorterDuff.Mode.MULTIPLY);
-                GeneralToastMsg("The service has been turned OFF");
-            }
-            else if(button.getText().equals("OFF"))
-            {
-                button.setText("ON");
-                button.getBackground().setColorFilter(Color.GREEN, PorterDuff.Mode.MULTIPLY);
-                GeneralToastMsg("The service has been turned ON");
-                sendNotification("on");
-            }
+            return convertView;
         }
 
         private void sendNotification(String msg)
@@ -243,13 +287,14 @@ public class MainParentActivity extends ListActivity
             });
             request.execute(url, message);*/
         }
+
         private boolean registerTeenPhone()
         {
             boolean returnValue = true;
-            final EditText regIdText = new EditText(this.m_context);
+            final EditText regIdText = new EditText(getApplicationContext());
             regIdText.setInputType(InputType.TYPE_CLASS_NUMBER);
 
-            AlertDialog.Builder alert = new AlertDialog.Builder(this.m_context);
+            AlertDialog.Builder alert = new AlertDialog.Builder(getApplicationContext());
             alert.setMessage("Teen's Registration Id:");
             alert.setPositiveButton("Register", new DialogInterface.OnClickListener()
             {
@@ -305,7 +350,7 @@ public class MainParentActivity extends ListActivity
 
         public void GeneralToastMsg(String toastMsg)
         {
-            Toast toast = Toast.makeText(m_context, toastMsg, Toast.LENGTH_LONG);
+            Toast toast = Toast.makeText(getApplicationContext(), toastMsg, Toast.LENGTH_LONG);
             toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0);
             toast.show();
         }

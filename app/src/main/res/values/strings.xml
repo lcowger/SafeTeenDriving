@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">Safe Teen Driving</string>
     <string name="action_settings">Settings</string>
+    <string name="register_service_button">Register Device</string>
+    <string name="waiting_service_button">Waiting...</string>
+    <string name="on_service_button">ON</string>
+    <string name="off_service_button">OFF</string>
 </resources>

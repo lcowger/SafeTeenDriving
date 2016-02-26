@@ -4,7 +4,7 @@
     android:layout_height="wrap_content" >
 
     <TextView
-        android:id="@+id/label"
+        android:id="@+id/labelName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="30dp"
@@ -21,7 +21,17 @@
         android:layout_alignParentRight="true"
         android:layout_centerVertical="true"
         android:textStyle="bold"
-        android:text="Register Device" >
+        android:text="@string/register_service_button" >
     </Button>
+
+    <ImageButton
+        android:id="@+id/buttonSettings"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:src="@android:drawable/ic_menu_preferences"
+        android:layout_toLeftOf="@id/buttonMainService"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true" >
+    </ImageButton>
 
 </RelativeLayout>
