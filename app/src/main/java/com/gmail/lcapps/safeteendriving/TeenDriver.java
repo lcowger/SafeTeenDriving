@@ -5,9 +5,17 @@ public class TeenDriver
     private String m_name;
     private String m_id;
     private String m_guessId;
-    private String m_token;
     private ServiceStatus m_serviceStatus;
     private TeenDriverSettings m_settings;
+
+    public TeenDriver()
+    {
+        m_name = "";
+        m_id = "";
+        m_guessId = "";
+        m_serviceStatus = null;
+        m_settings = new TeenDriverSettings();
+    }
 
     public void setName(String name)
     {
@@ -24,11 +32,6 @@ public class TeenDriver
         m_guessId = id;
     }
 
-    public void setToken(String token)
-    {
-        m_token = token;
-    }
-
     public void setServiceStatus(ServiceStatus status)
     {
         m_serviceStatus = status;
@@ -42,11 +45,6 @@ public class TeenDriver
     public String getId() { return m_id; }
 
     public String getGuessId() { return m_guessId; }
-
-    public String getToken()
-    {
-        return m_token;
-    }
 
     public ServiceStatus getServerStatus()
     {

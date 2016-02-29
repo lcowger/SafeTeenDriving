@@ -27,8 +27,9 @@ public class RegistrationIntentService extends IntentService {
     protected void onHandleIntent(Intent intent) {
 
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        try {
-
+        String token = null;
+        try
+        {
             // [START register_for_gcm]
             // Initially this call goes out to the network to retrieve the token, subsequent calls
             // are local.
@@ -36,75 +37,22 @@ public class RegistrationIntentService extends IntentService {
             // See https://developers.google.com/cloud-messaging/android/start for details on this file.
             // [START get_token]
             InstanceID instanceID = InstanceID.getInstance(this);
-            String token = instanceID.getToken(getString(R.string.gcm_defaultSenderId), GoogleCloudMessaging.INSTANCE_ID_SCOPE, null);
+            token = instanceID.getToken(getString(R.string.gcm_defaultSenderId), GoogleCloudMessaging.INSTANCE_ID_SCOPE, null);
             // [END get_token]
             Log.i(TAG, "GCM Registration Token: " + token);
 
-            sharedPreferences.edit().putString("token", token).apply();
-
-            // TODO: Implement this method to send any registration to your app's servers.
-            //sendRegistrationToServer(token);
-
-            // You should store a boolean that indicates whether the generated token has been
-            // sent to your server. If the boolean is false, send the token to your server,
-            // otherwise your server should have already received the token.
-            //sharedPreferences.edit().putBoolean(QuickstartPreferences.SENT_TOKEN_TO_SERVER, true).apply();
-            // [END register_for_gcm]
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             Log.d(TAG, "Failed to complete token refresh", e);
             // If an exception happens while fetching the new token or updating our registration data
             // on a third-party server, this ensures that we'll attempt the update at a later time.
-            //sharedPreferences.edit().putBoolean(QuickstartPreferences.SENT_TOKEN_TO_SERVER, false).apply();
         }
         // Notify UI that registration has completed, so the progress indicator can be hidden.
-        Intent registrationComplete = new Intent(QuickstartPreferences.REGISTRATION_COMPLETE);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(registrationComplete);
-    }
+        Intent grabbedTokenIntent = new Intent(BroadcastEventType.GRABBED_TOKEN);
+        grabbedTokenIntent.putExtra("token", token);
 
-    /**
-     * Persist registration to third-party servers.
-     *
-     * Modify this method to associate the user's GCM registration token with any server-side account
-     * maintained by your application.
-     *
-     * @param token The new token.
-     */
-    private void sendRegistrationToServer(String token) {
-        String url = "https://66ctfnx3b2.execute-api.us-west-2.amazonaws.com/prod/addTeenPhone";
-        String message = null;
-        try {
-            message = new JSONObject().put("token", token).toString();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        MyHttpRequest request = new MyHttpRequest(getApplicationContext());
-        request.setDataDownloadListener(new MyHttpRequest.DataDownloadListener()
-        {
-            @SuppressWarnings("unchecked")
-            @Override
-            public void dataDownloadedSuccessfully(Object data) {
-
-                String regId = null;
-                try {
-                    JSONObject reader = new JSONObject(data.toString());
-                    regId = reader.getString("data");
-                }
-                catch(Exception e) {
-                    Log.v("Error", e.toString());
-
-                }
-
-                SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                sharedPreferences.edit().putString("regId", regId).apply();
-
-            }
-            @Override
-            public void dataDownloadFailed() {
-                // handler failure (e.g network not available etc.)
-            }
-        });
-        request.execute(url, message);
+        getApplicationContext().sendBroadcast(grabbedTokenIntent);
     }
 
 }

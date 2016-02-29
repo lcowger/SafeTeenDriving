@@ -34,24 +34,26 @@ public class MainActivity extends Activity {
             Intent intent = new Intent(this, MainParentActivity.class);
             startActivity(intent);
         }
+        else
+        {
+            parentButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
 
-        parentButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+                    Intent registerAccountIntent = new Intent(MainActivity.this, RegisterParentAccountActivity.class);
+                    startActivity(registerAccountIntent);
+                }
+            });
 
-                Intent registerAccountIntent = new Intent(MainActivity.this, RegisterParentAccountActivity.class);
-                startActivity(registerAccountIntent);
-            }
-        });
+            teenButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
 
-        teenButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                Intent mainTeenIntent = new Intent(MainActivity.this, MainTeenActivity.class);
-                startActivity(mainTeenIntent);
-            }
-        });
+                    Intent mainTeenIntent = new Intent(MainActivity.this, MainTeenActivity.class);
+                    startActivity(mainTeenIntent);
+                }
+            });
+        }
     }
 
     @Override

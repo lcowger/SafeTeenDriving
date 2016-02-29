@@ -1,62 +1,25 @@
 package com.gmail.lcapps.safeteendriving;
 
-import android.app.AlertDialog;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
-import android.media.RingtoneManager;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.PowerManager;
-import android.preference.PreferenceManager;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.view.Gravity;
-import android.widget.Toast;
-
 import com.google.android.gms.gcm.GcmListenerService;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.io.InputStream;
-import java.net.URL;
 
 // Server API key: AIzaSyCTL7G8lOP0wvHFx-UWEbv3xflgYXmyeEI
 // Sender ID: 725482207740
 
-public class TeenGcmListenerService extends GcmListenerService
+public class CustomGcmListenerService extends GcmListenerService
 {
-    private static final String TAG = "MyGcmListenerService";
+    private static final String TAG = "GcmListenerService";
 
-    /**
-     * Called when message is received.
-     *
-     * @param from SenderID of the sender.
-     * @param data Data bundle containing message data as key/value pairs.
-     *             For Set of keys use data.keySet().
-     */
-    // [START receive_message]
     @Override
     public void onMessageReceived(String from, Bundle data)
     {
         Log.d(TAG, "From: " + from);
 
         parseMessage(data);
-    }
-
-    static void updateMyActivity(Context context, String message)
-    {
-
     }
 
     private void parseMessage(Bundle data)
@@ -84,32 +47,33 @@ public class TeenGcmListenerService extends GcmListenerService
         }
     }
 
-    private void sendRegistrationSuccessfulToParent(JSONObject jsonObj)
-    {
-        String msg = "Registration Successful!";
-        Intent intent = new Intent("teenRegistrationSuccessful");
-        intent.putExtra("message", msg);
-        intent.putExtra("teenId", jsonObj.optString("teenId"));
-
-        getApplicationContext().sendBroadcast(intent);
-    }
-
     private void askForRegistrationFromTeen(JSONObject jsonObj)
     {
         String firstName = jsonObj.optString("firstName");
         String lastName = jsonObj.optString("lastName");
         String email = jsonObj.optString("email");
         final String parentGuid = jsonObj.optString("parentGuid");
-        final String alertMessage = firstName + " " + lastName + " (" + email + ") would like access to your phone.";
+        final String alertMessage = firstName + " " + lastName + " (" + email + ") would like to register you as a driver on their phone.";
 
-        Intent intent = new Intent("showRequestDialog");
+        Intent intent = new Intent(BroadcastEventType.ASK_TEEN_FOR_REGISTRATION);
         intent.putExtra("message", alertMessage);
         intent.putExtra("parentGuid", parentGuid);
 
         getApplicationContext().sendBroadcast(intent);
     }
 
-    private void doSomethingWithMessage(JSONObject message)
+    private void sendRegistrationSuccessfulToParent(JSONObject jsonObj)
+    {
+        String msg = "Registration Successful!";
+        Intent intent = new Intent(BroadcastEventType.TEEN_REGISTRATION_SUCCESSFUL);
+        intent.putExtra("message", msg);
+        intent.putExtra("teenId", jsonObj.optString("teenId"));
+
+        getApplicationContext().sendBroadcast(intent);
+    }
+
+    // *********** Keep around in case of need to do something with notifications ****************
+    /*private void doSomethingWithMessage(JSONObject message)
     {
         PowerManager pm = (PowerManager) getApplication().getSystemService(Context.POWER_SERVICE);
         PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, getClass().getName());
@@ -132,6 +96,6 @@ public class TeenGcmListenerService extends GcmListenerService
         notificationManager.notify(0, notificationBuilder.build());
 
         wl.release();
-    }
+    }*/
 }
 

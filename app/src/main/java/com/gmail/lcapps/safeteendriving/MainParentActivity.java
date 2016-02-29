@@ -45,7 +45,7 @@ public class MainParentActivity extends ListActivity
         @Override
         public void onReceive(Context context, Intent intent)
         {
-            if (intent.getAction().equals("teenRegistrationSuccessful"))
+            if (intent.getAction().equals(BroadcastEventType.TEEN_REGISTRATION_SUCCESSFUL))
             {
                 /* Possible ways to implement this:
                  *  (Both don't solve the problem of if the list changes (add/delete)
@@ -76,7 +76,7 @@ public class MainParentActivity extends ListActivity
     public void onResume()
     {
         super.onResume();
-        this.registerReceiver(m_receiver, new IntentFilter("teenRegistrationSuccessful"));
+        this.registerReceiver(m_receiver, new IntentFilter(BroadcastEventType.TEEN_REGISTRATION_SUCCESSFUL));
     }
 
     @Override
@@ -109,10 +109,10 @@ public class MainParentActivity extends ListActivity
             if(cursor.moveToFirst())
             {
                 String name = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME));
+
                 TeenDriver driver = new TeenDriver();
                 driver.setName(name);
                 driver.setServiceStatus(ServiceStatus.REGISTER_DEVICE);
-                driver.setGuessId("3");
 
                 this.m_driverList.add(driver);
                 this.m_driverAdapter.notifyDataSetChanged();
@@ -147,14 +147,18 @@ public class MainParentActivity extends ListActivity
 
     public class DriverArrayAdapter extends ArrayAdapter<TeenDriver>
     {
+        private Context m_mainParentActivityContext;
+
         public DriverArrayAdapter(Context context, ArrayList<TeenDriver> drivers)
         {
             super(context, 0, drivers);
+            m_mainParentActivityContext = context;
         }
 
         @Override
         public View getView(final int position, View convertView, ViewGroup parent)
         {
+            //final TeenDriver driver = null;
             if(position == 0)
             {
                 if (convertView == null)
@@ -175,7 +179,7 @@ public class MainParentActivity extends ListActivity
             }
             else
             {
-                TeenDriver driver = getItem(position);
+                final TeenDriver driver = getItem(position);
 
                 if (convertView == null)
                 {
@@ -203,6 +207,7 @@ public class MainParentActivity extends ListActivity
                 }
                 else if (status == ServiceStatus.WAITING_FOR_RESPONSE)
                 {
+                    btnService.getBackground().setColorFilter(Color.YELLOW, PorterDuff.Mode.MULTIPLY);
                     btnService.setText(R.string.waiting_service_button);
                 }
                 else if (status == ServiceStatus.SERVICE_ON)
@@ -221,25 +226,39 @@ public class MainParentActivity extends ListActivity
                     @Override
                     public void onClick(View v)
                     {
+                        JSONObject message = new JSONObject();
+                        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                        String guid = preferences.getString("parentGuid", "null");
+
                         if (btnService.getText().equals(getResources().getText(R.string.register_service_button)))
                         {
                             // Register
-                            Log.d("k", "p");
-                        }
-                        else if (btnService.getText().equals(getResources().getText(R.string.waiting_service_button)))
-                        {
-                            // Waiting
-                            Log.d("k", "p");
+                            requestTeenRegistration(guid, driver);
                         }
                         else if (btnService.getText().equals(getResources().getText(R.string.on_service_button)))
                         {
                             // On
-                            Log.d("k", "p");
+                            try
+                            {
+                                message.put("userGuid", driver.getId());
+                                message.put("", "");
+                            }
+                            catch(JSONException e)
+                            {
+                                e.printStackTrace();
+                            }
+
+                            sendNotificationToTeen(message.toString());
                         }
                         else if (btnService.getText().equals(getResources().getText(R.string.off_service_button)))
                         {
                             // Off
                             Log.d("k", "p");
+                        }
+                        else if (btnService.getText().equals(getResources().getText(R.string.waiting_service_button)))
+                        {
+                            // Waiting
+                            // Do nothing
                         }
                     }
 
@@ -251,59 +270,52 @@ public class MainParentActivity extends ListActivity
             return convertView;
         }
 
-        private void sendNotification(String msg)
+        private void sendNotificationToTeen(String msg)
         {
-            /*SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-            String guid = preferences.getString("parentGuid", "null");
-            //msg.put("guid", guid);
-
             String url = "https://66ctfnx3b2.execute-api.us-west-2.amazonaws.com/prod/notificationFunc";
-            //String teenId = regIdText.getText().toString();
 
             MyHttpRequest request = new MyHttpRequest(getApplicationContext());
             request.setDataDownloadListener(new MyHttpRequest.DataDownloadListener()
             {
                 @SuppressWarnings("unchecked")
                 @Override
-                public void dataDownloadedSuccessfully(Object data)
-                {
+                public void dataDownloadedSuccessfully(Object data) {
                     String guid = null;
                     try
                     {
                         JSONObject reader = new JSONObject(data.toString());
                         guid = reader.getString("data");
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         Log.v("Error", e.toString());
-
                     }
                 }
+
                 @Override
-                public void dataDownloadFailed()
-                {
+                public void dataDownloadFailed() {
                     // handler failure (e.g network not available etc.)
                 }
             });
-            request.execute(url, message);*/
+            request.execute(url, msg);
         }
 
-        private boolean registerTeenPhone()
+        private void requestTeenRegistration(final String guid, final TeenDriver driver)
         {
-            boolean returnValue = true;
-            final EditText regIdText = new EditText(getApplicationContext());
+            final EditText regIdText = new EditText(m_mainParentActivityContext);
             regIdText.setInputType(InputType.TYPE_CLASS_NUMBER);
 
-            AlertDialog.Builder alert = new AlertDialog.Builder(getApplicationContext());
-            alert.setMessage("Teen's Registration Id:");
+            AlertDialog.Builder alert = new AlertDialog.Builder(m_mainParentActivityContext);
+            alert.setMessage("Enter driver's Registration Id:");
             alert.setPositiveButton("Register", new DialogInterface.OnClickListener()
             {
                 public void onClick(DialogInterface dialog, int id)
                 {
-                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
                     String url = "https://66ctfnx3b2.execute-api.us-west-2.amazonaws.com/prod/requestTeenPhone";
-                    String guid = preferences.getString("parentGuid", "null");
                     String teenId = regIdText.getText().toString();
+                    driver.setGuessId(teenId);
+                    driver.setServiceStatus(ServiceStatus.WAITING_FOR_RESPONSE);
+                    m_driverAdapter.notifyDataSetChanged();
 
                     String message = null;
                     try
@@ -314,23 +326,14 @@ public class MainParentActivity extends ListActivity
                     {
                         e.printStackTrace();
                     }
-                    MyHttpRequest request = new MyHttpRequest(getApplicationContext());
+                    MyHttpRequest request = new MyHttpRequest(m_mainParentActivityContext);
                     request.setDataDownloadListener(new MyHttpRequest.DataDownloadListener()
                     {
                         @SuppressWarnings("unchecked")
                         @Override
                         public void dataDownloadedSuccessfully(Object data)
                         {
-                            String guid = null;
-                            try
-                            {
-                                JSONObject reader = new JSONObject(data.toString());
-                                guid = reader.getString("data");
-                            }
-                            catch(Exception e)
-                            {
-                                Log.v("Error", e.toString());
-                            }
+
                         }
                         @Override
                         public void dataDownloadFailed()
@@ -344,15 +347,6 @@ public class MainParentActivity extends ListActivity
             alert.setNegativeButton("Cancel", null);
             alert.setView(regIdText);
             alert.show();
-
-            return true;
-        }
-
-        public void GeneralToastMsg(String toastMsg)
-        {
-            Toast toast = Toast.makeText(getApplicationContext(), toastMsg, Toast.LENGTH_LONG);
-            toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0);
-            toast.show();
         }
 
         private void openContactList()
