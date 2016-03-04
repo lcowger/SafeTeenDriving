@@ -45,29 +45,31 @@ public class MainParentActivity extends ListActivity
         @Override
         public void onReceive(Context context, Intent intent)
         {
-            if (intent.getAction().equals(BroadcastEventType.TEEN_REGISTRATION_SUCCESSFUL))
+            switch (intent.getAction())
             {
-                /* Possible ways to implement this:
-                 *  (Both don't solve the problem of if the list changes (add/delete)
-                 *   between request and response (ie index will be invalid/guessId might trigger false/positives)
-                 *
-                 *      Current way      - add 'guess id' to TeenDriver class
-                 *                         guess id is set for the teen driver before request is made
-                 *                         on response, the teen id is sent down
-                 *                         loop through driver list and compare id to guess id
-                 *                         when driver is found, set the real (not guess) id
-                 *
-                 *      Alt way          - on request, send up index of array position
-                 *                         on response, the index is sent back down
-                 *                         set the real id
-                 *
-                 *     Brainstorming     - send driver name up on request and down on response
-                 *                         */
+                case BroadcastEventType.TEEN_REGISTRATION_SUCCESSFUL:
+                    /* Possible ways to implement this:
+                     *  (Both don't solve the problem of if the list changes (add/delete)
+                     *   between request and response (ie index will be invalid/guessId might trigger false/positives)
+                     *
+                     *      Current way      - add 'guess id' to TeenDriver class
+                     *                         guess id is set for the teen driver before request is made
+                     *                         on response, the teen id is sent down
+                     *                         loop through driver list and compare id to guess id
+                     *                         when driver is found, set the real (not guess) id
+                     *
+                     *      Alt way          - on request, send up index of array position
+                     *                         on response, the index is sent back down to
+                     *                         set the real id
+                     *
+                     *     Brainstorming     - send driver name up on request and down on response
+                     *                         */
 
-                String id = intent.getStringExtra("teenId");
-                String message = intent.getStringExtra("message");
+                    String id = intent.getStringExtra("teenId");
+                    String message = intent.getStringExtra("message");
 
-                teenRegistrationSuccessful(id, message);
+                    teenRegistrationSuccessful(id, message);
+                    break;
             }
         }
     };
@@ -253,12 +255,6 @@ public class MainParentActivity extends ListActivity
                         else if (btnService.getText().equals(getResources().getText(R.string.off_service_button)))
                         {
                             // Off
-                            Log.d("k", "p");
-                        }
-                        else if (btnService.getText().equals(getResources().getText(R.string.waiting_service_button)))
-                        {
-                            // Waiting
-                            // Do nothing
                         }
                     }
 

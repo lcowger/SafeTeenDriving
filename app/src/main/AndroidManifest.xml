@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 
     <permission android:name="com.gmail.lcapps.safeteendriving.permission.C2D_MESSAGE"
@@ -48,6 +49,7 @@
                 <action android:name="com.google.android.gms.iid.InstanceID"/>
             </intent-filter>
         </service>
+
         <service
             android:name="com.gmail.lcapps.safeteendriving.CustomGcmListenerService"
             android:exported="false" >
@@ -55,10 +57,18 @@
                 <action android:name="com.google.android.c2dm.intent.RECEIVE" />
             </intent-filter>
         </service>
+
         <service
             android:name="com.gmail.lcapps.safeteendriving.RegistrationIntentService"
             android:exported="false">
         </service>
+
+        <service
+            android:name="com.gmail.lcapps.safeteendriving.CustomLocationListenerService"
+            android:label="Safe Teen Driving Background Service"
+            android:exported="false">
+        </service>
+
     </application>
 
 </manifest>

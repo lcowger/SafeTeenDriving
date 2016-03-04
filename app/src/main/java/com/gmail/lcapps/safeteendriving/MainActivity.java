@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         String guid = preferences.getString("parentGuid", "null");
 
-        if (!guid.equals("null"))
+        if (guid.equals("null"))
         {
             Intent intent = new Intent(this, MainParentActivity.class);
             startActivity(intent);

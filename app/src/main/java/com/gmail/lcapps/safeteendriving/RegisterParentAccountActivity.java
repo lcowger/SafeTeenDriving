@@ -23,7 +23,7 @@ public class RegisterParentAccountActivity extends Activity
         @Override
         public void onReceive(Context context, Intent intent)
         {
-            if (intent.getAction().equals(BroadcastEventType.GRABBED_TOKEN))
+            if (intent.getAction().equals(BroadcastEventType.GRABBED_NEW_TOKEN))
             {
                 createAccount(intent.getStringExtra("token"));
             }
@@ -34,7 +34,7 @@ public class RegisterParentAccountActivity extends Activity
     public void onResume()
     {
         super.onResume();
-        this.registerReceiver(m_receiver, new IntentFilter(BroadcastEventType.GRABBED_TOKEN));
+        this.registerReceiver(m_receiver, new IntentFilter(BroadcastEventType.GRABBED_NEW_TOKEN));
     }
 
     @Override

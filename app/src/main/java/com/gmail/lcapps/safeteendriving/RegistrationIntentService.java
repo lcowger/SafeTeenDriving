@@ -24,9 +24,8 @@ public class RegistrationIntentService extends IntentService {
     }
 
     @Override
-    protected void onHandleIntent(Intent intent) {
-
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+    protected void onHandleIntent(Intent intent)
+    {
         String token = null;
         try
         {
@@ -40,7 +39,6 @@ public class RegistrationIntentService extends IntentService {
             token = instanceID.getToken(getString(R.string.gcm_defaultSenderId), GoogleCloudMessaging.INSTANCE_ID_SCOPE, null);
             // [END get_token]
             Log.i(TAG, "GCM Registration Token: " + token);
-
         }
         catch (Exception e)
         {
@@ -48,8 +46,8 @@ public class RegistrationIntentService extends IntentService {
             // If an exception happens while fetching the new token or updating our registration data
             // on a third-party server, this ensures that we'll attempt the update at a later time.
         }
-        // Notify UI that registration has completed, so the progress indicator can be hidden.
-        Intent grabbedTokenIntent = new Intent(BroadcastEventType.GRABBED_TOKEN);
+
+        Intent grabbedTokenIntent = new Intent(BroadcastEventType.GRABBED_NEW_TOKEN);
         grabbedTokenIntent.putExtra("token", token);
 
         getApplicationContext().sendBroadcast(grabbedTokenIntent);

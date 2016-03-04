@@ -37,14 +37,25 @@ public class CustomGcmListenerService extends GcmListenerService
 
         String type = obj.optString("type");
 
-        if (type.equals("teenRequest"))
+        switch (type)
+        {
+            case GcmMessageType.ASK_TEEN_FOR_REGISTRATION:
+                askForRegistrationFromTeen(obj);
+                break;
+
+            case GcmMessageType.TEEN_REGISTRATION_SUCCESSFUL:
+                sendTeenRegistrationSuccessfulToParent(obj);
+                break;
+        }
+
+        /*if (type.equals("teenRequest"))
         {
             askForRegistrationFromTeen(obj);
         }
         else if (type.equals("teenRequestSuccessful"))
         {
-            sendRegistrationSuccessfulToParent(obj);
-        }
+            sendTeenRegistrationSuccessfulToParent(obj);
+        }*/
     }
 
     private void askForRegistrationFromTeen(JSONObject jsonObj)
@@ -62,7 +73,7 @@ public class CustomGcmListenerService extends GcmListenerService
         getApplicationContext().sendBroadcast(intent);
     }
 
-    private void sendRegistrationSuccessfulToParent(JSONObject jsonObj)
+    private void sendTeenRegistrationSuccessfulToParent(JSONObject jsonObj)
     {
         String msg = "Registration Successful!";
         Intent intent = new Intent(BroadcastEventType.TEEN_REGISTRATION_SUCCESSFUL);

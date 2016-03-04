@@ -14,33 +14,96 @@ import android.util.Log;
 import android.widget.TextView;
 import org.json.JSONException;
 import org.json.JSONObject;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainTeenActivity extends Activity
 {
+    private static final String TAG = "MainTeenActivity";
+    private Intent m_currentLocationServiceIntent;
     private TextView m_registrationIdText;
+    private TextView m_latitudeText;
+    private TextView m_longitudeText;
+    private TextView m_speedText;
+    private TextView m_serviceText;
+
+    private int m_maxSpeed = 10;
+    private int m_numTimesUnderMph;
+    private Timer m_timer;
+    private MyTimerTask m_timerTask;
+
     private BroadcastReceiver m_receiver = new BroadcastReceiver()
     {
         @Override
         public void onReceive(Context context, Intent intent)
         {
+            switch (intent.getAction())
+            {
+                case BroadcastEventType.GRABBED_NEW_TOKEN:
+                    createTeenDriver(intent.getStringExtra("token"));
+                    break;
 
-            if (intent.getAction().equals(BroadcastEventType.GRABBED_TOKEN))
-            {
-                createTeenDriver(intent.getStringExtra("token"));
-            }
-            if (intent.getAction().equals(BroadcastEventType.ASK_TEEN_FOR_REGISTRATION))
-            {
-                showRequestDialogBox(intent.getStringExtra("message"), intent.getStringExtra("parentGuid"));
+                case BroadcastEventType.ASK_TEEN_FOR_REGISTRATION:
+                    showRequestDialogBox(intent.getStringExtra("message"), intent.getStringExtra("parentGuid"));
+                    break;
+
+                case BroadcastEventType.NEW_LOCATION_DATA:
+                    updateUI(intent.getStringExtra("latitude"), intent.getStringExtra("longitude"), intent.getStringExtra("speed"));
+                    checkMaxSpeed(intent.getStringExtra("speed"));
+                    break;
             }
         }
     };
+
+    private void checkMaxSpeed(String speed)
+    {
+        if (Integer.parseInt(speed) < m_maxSpeed)
+        {
+            m_numTimesUnderMph++;
+
+            if (m_numTimesUnderMph == 9)
+            {
+                m_timer = new Timer();
+                m_timerTask = new MyTimerTask();
+
+                m_timer.schedule(m_timerTask, 30000);
+            }
+        }
+        else
+        {
+            m_timer.cancel();
+            m_timer = null;
+            m_timerTask.cancel();
+            m_timerTask = null;
+            m_numTimesUnderMph = 0;
+
+            // if (calls/texts are enabled) { disable them }
+        }
+    }
+
+    class MyTimerTask extends TimerTask
+    {
+        public void run()
+        {
+            m_numTimesUnderMph = 0;
+            // if (calls/texts are disabled) { enabled them }
+        }
+    }
+
+    private void updateUI(String latitude, String longitude, String speed)
+    {
+        m_latitudeText.setText(latitude);
+        m_longitudeText.setText(longitude);
+        m_speedText.setText(speed + " mph");
+    }
 
     @Override
     public void onResume()
     {
         super.onResume();
-        this.registerReceiver(m_receiver, new IntentFilter(BroadcastEventType.GRABBED_TOKEN));
+        this.registerReceiver(m_receiver, new IntentFilter(BroadcastEventType.GRABBED_NEW_TOKEN));
         this.registerReceiver(m_receiver, new IntentFilter(BroadcastEventType.ASK_TEEN_FOR_REGISTRATION));
+        this.registerReceiver(m_receiver, new IntentFilter(BroadcastEventType.NEW_LOCATION_DATA));
     }
 
     @Override
@@ -56,7 +119,11 @@ public class MainTeenActivity extends Activity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_teen);
 
-        this.m_registrationIdText = (TextView) findViewById(R.id.labelRegistrationId);
+        m_registrationIdText = (TextView) findViewById(R.id.labelRegistrationId);
+        m_latitudeText = (TextView) findViewById(R.id.labelLatitude);
+        m_longitudeText = (TextView) findViewById(R.id.labelLongitude);
+        m_speedText = (TextView) findViewById(R.id.labelSpeed);
+        m_serviceText = (TextView) findViewById(R.id.labelService);
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         String regId = preferences.getString("regId", "null");
@@ -67,7 +134,12 @@ public class MainTeenActivity extends Activity
             startService(intent);
         }
         else
-            this.m_registrationIdText.setText(regId);
+        {
+            m_registrationIdText.setText(regId);
+            m_currentLocationServiceIntent = new Intent(this, CustomLocationListenerService.class);
+
+            startService(m_currentLocationServiceIntent);
+        }
     }
 
     private void createTeenDriver(String token)
