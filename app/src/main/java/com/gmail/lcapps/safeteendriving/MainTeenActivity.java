@@ -8,29 +8,38 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.view.Gravity;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import org.json.JSONException;
 import org.json.JSONObject;
+import java.lang.reflect.Method;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class MainTeenActivity extends Activity
 {
     private static final String TAG = "MainTeenActivity";
+
     private Intent m_currentLocationServiceIntent;
     private TextView m_registrationIdText;
     private TextView m_latitudeText;
     private TextView m_longitudeText;
     private TextView m_speedText;
     private TextView m_serviceText;
+    private TextView m_callsText;
 
-    private int m_maxSpeed = 10;
-    private int m_numTimesUnderMph;
-    private Timer m_timer;
-    private MyTimerTask m_timerTask;
+    private String m_latitude;
+    private String m_longitude;
+    private String m_speed;
+    private boolean m_service = true;
+    private boolean m_calls = false;
 
     private BroadcastReceiver m_receiver = new BroadcastReceiver()
     {
@@ -40,70 +49,89 @@ public class MainTeenActivity extends Activity
             switch (intent.getAction())
             {
                 case BroadcastEventType.GRABBED_NEW_TOKEN:
+
                     createTeenDriver(intent.getStringExtra("token"));
+
                     break;
 
                 case BroadcastEventType.ASK_TEEN_FOR_REGISTRATION:
+
                     showRequestDialogBox(intent.getStringExtra("message"), intent.getStringExtra("parentGuid"));
+
                     break;
 
                 case BroadcastEventType.NEW_LOCATION_DATA:
-                    updateUI(intent.getStringExtra("latitude"), intent.getStringExtra("longitude"), intent.getStringExtra("speed"));
-                    checkMaxSpeed(intent.getStringExtra("speed"));
+
+                    m_latitude = intent.getStringExtra("latitude");
+                    m_longitude = intent.getStringExtra("longitude");
+                    m_speed = intent.getStringExtra("speed");
+                    m_calls = intent.getBooleanExtra("calls", false);
+
+                    updateUI();
+
+                    break;
+
+                case BroadcastEventType.CHANGE_TEEN_SERVICE_STATUS:
+
+                    if (m_service == true)
+                    {
+                        stopService(m_currentLocationServiceIntent);
+                        m_service = false;
+                    }
+                    else
+                    {
+                        startLocationService();
+                        m_service = true;
+                    }
+
+                    updateUI();
+
                     break;
             }
         }
     };
 
-    private void checkMaxSpeed(String speed)
+    private void updateUI()
     {
-        if (Integer.parseInt(speed) < m_maxSpeed)
+        m_latitudeText.setText(m_latitude);
+        m_longitudeText.setText(m_longitude);
+        m_speedText.setText(m_speed + " mph");
+
+        if (m_service == true)
         {
-            m_numTimesUnderMph++;
-
-            if (m_numTimesUnderMph == 9)
-            {
-                m_timer = new Timer();
-                m_timerTask = new MyTimerTask();
-
-                m_timer.schedule(m_timerTask, 30000);
-            }
+            m_serviceText.setText("ON");
+            m_serviceText.setTextColor(Color.parseColor("#006600"));
         }
         else
         {
-            m_timer.cancel();
-            m_timer = null;
-            m_timerTask.cancel();
-            m_timerTask = null;
-            m_numTimesUnderMph = 0;
-
-            // if (calls/texts are enabled) { disable them }
+            m_serviceText.setText("OFF");
+            m_serviceText.setTextColor(Color.RED);
         }
-    }
 
-    class MyTimerTask extends TimerTask
-    {
-        public void run()
+        if (m_calls == true)
         {
-            m_numTimesUnderMph = 0;
-            // if (calls/texts are disabled) { enabled them }
+            m_callsText.setText("ENABLED");
+            m_callsText.setTextColor(Color.parseColor("#006600"));
         }
-    }
-
-    private void updateUI(String latitude, String longitude, String speed)
-    {
-        m_latitudeText.setText(latitude);
-        m_longitudeText.setText(longitude);
-        m_speedText.setText(speed + " mph");
+        else
+        {
+            m_callsText.setText("DISABLED");
+            m_callsText.setTextColor(Color.RED);
+        }
     }
 
     @Override
     public void onResume()
     {
         super.onResume();
-        this.registerReceiver(m_receiver, new IntentFilter(BroadcastEventType.GRABBED_NEW_TOKEN));
-        this.registerReceiver(m_receiver, new IntentFilter(BroadcastEventType.ASK_TEEN_FOR_REGISTRATION));
-        this.registerReceiver(m_receiver, new IntentFilter(BroadcastEventType.NEW_LOCATION_DATA));
+
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(BroadcastEventType.GRABBED_NEW_TOKEN);
+        intentFilter.addAction(BroadcastEventType.ASK_TEEN_FOR_REGISTRATION);
+        intentFilter.addAction(BroadcastEventType.NEW_LOCATION_DATA);
+        intentFilter.addAction(BroadcastEventType.CHANGE_TEEN_SERVICE_STATUS);
+
+        this.registerReceiver(m_receiver, intentFilter);
     }
 
     @Override
@@ -114,8 +142,7 @@ public class MainTeenActivity extends Activity
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState)
-    {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_teen);
 
@@ -124,6 +151,7 @@ public class MainTeenActivity extends Activity
         m_longitudeText = (TextView) findViewById(R.id.labelLongitude);
         m_speedText = (TextView) findViewById(R.id.labelSpeed);
         m_serviceText = (TextView) findViewById(R.id.labelService);
+        m_callsText = (TextView) findViewById(R.id.labelCalls);
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         String regId = preferences.getString("regId", "null");
@@ -136,10 +164,17 @@ public class MainTeenActivity extends Activity
         else
         {
             m_registrationIdText.setText(regId);
-            m_currentLocationServiceIntent = new Intent(this, CustomLocationListenerService.class);
 
-            startService(m_currentLocationServiceIntent);
+            startLocationService();;
         }
+    }
+
+    private void startLocationService()
+    {
+        m_currentLocationServiceIntent = new Intent(this, CustomLocationListenerService.class);
+        m_currentLocationServiceIntent.putExtra("maxSpeed", 15);
+
+        startService(m_currentLocationServiceIntent);
     }
 
     private void createTeenDriver(String token)

@@ -40,25 +40,26 @@ public class CustomGcmListenerService extends GcmListenerService
         switch (type)
         {
             case GcmMessageType.ASK_TEEN_FOR_REGISTRATION:
-                askForRegistrationFromTeen(obj);
+                requestRegistrationFromTeen(obj);
                 break;
 
             case GcmMessageType.TEEN_REGISTRATION_SUCCESSFUL:
                 sendTeenRegistrationSuccessfulToParent(obj);
                 break;
-        }
 
-        /*if (type.equals("teenRequest"))
-        {
-            askForRegistrationFromTeen(obj);
+            case GcmMessageType.CHANGE_TEEN_SERVICE_STATUS:
+                requestChangeTeenMainService(obj);
+                break;
         }
-        else if (type.equals("teenRequestSuccessful"))
-        {
-            sendTeenRegistrationSuccessfulToParent(obj);
-        }*/
     }
 
-    private void askForRegistrationFromTeen(JSONObject jsonObj)
+    private void requestChangeTeenMainService(JSONObject jsonObj)
+    {
+        Intent intent = new Intent(BroadcastEventType.CHANGE_TEEN_SERVICE_STATUS);
+        getApplicationContext().sendBroadcast(intent);
+    }
+
+    private void requestRegistrationFromTeen(JSONObject jsonObj)
     {
         String firstName = jsonObj.optString("firstName");
         String lastName = jsonObj.optString("lastName");

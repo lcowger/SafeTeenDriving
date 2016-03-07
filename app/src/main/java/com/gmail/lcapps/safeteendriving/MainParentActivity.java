@@ -62,7 +62,7 @@ public class MainParentActivity extends ListActivity
                      *                         on response, the index is sent back down to
                      *                         set the real id
                      *
-                     *     Brainstorming     - send driver name up on request and down on response
+                     *     Brainstorming     - send driver name up on request and down on response (right one)
                      *                         */
 
                     String id = intent.getStringExtra("teenId");
@@ -228,33 +228,30 @@ public class MainParentActivity extends ListActivity
                     @Override
                     public void onClick(View v)
                     {
-                        JSONObject message = new JSONObject();
                         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
                         String guid = preferences.getString("parentGuid", "null");
 
                         if (btnService.getText().equals(getResources().getText(R.string.register_service_button)))
                         {
-                            // Register
+                            // Button is currently Register
+
                             requestTeenRegistration(guid, driver);
                         }
                         else if (btnService.getText().equals(getResources().getText(R.string.on_service_button)))
                         {
-                            // On
-                            try
-                            {
-                                message.put("userGuid", driver.getId());
-                                message.put("", "");
-                            }
-                            catch(JSONException e)
-                            {
-                                e.printStackTrace();
-                            }
+                            // Button is currently ON
 
-                            sendNotificationToTeen(message.toString());
+                            driver.setServiceStatus(ServiceStatus.SERVICE_OFF);
+                            m_driverAdapter.notifyDataSetChanged();
+                            changeServiceStatus(driver);
                         }
                         else if (btnService.getText().equals(getResources().getText(R.string.off_service_button)))
                         {
-                            // Off
+                            // Button is currently OFF
+
+                            driver.setServiceStatus(ServiceStatus.SERVICE_ON);
+                            m_driverAdapter.notifyDataSetChanged();
+                            changeServiceStatus(driver);
                         }
                     }
 
@@ -264,6 +261,23 @@ public class MainParentActivity extends ListActivity
             }
 
             return convertView;
+        }
+
+        private void changeServiceStatus(TeenDriver driver)
+        {
+            JSONObject message = new JSONObject();
+            try
+            {
+                message.put("userGuid", driver.getId());
+                message.put("sender", "teen");
+                message.put("message", "{ \"type\": \"changeService\" }");
+            }
+            catch(JSONException e)
+            {
+                e.printStackTrace();
+            }
+
+            sendNotificationToTeen(message.toString());
         }
 
         private void sendNotificationToTeen(String msg)
